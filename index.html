@@ -1,0 +1,1163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#157347">
+<title>Football Probability Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87.5,700;87.5,800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a matchday programme. One green header band, a filter card, then a ranked list of pick cards. */
+:root{
+  --bg:#f3f5f2; --panel:#ffffff; --ink:#14201b; --muted:#5b6862; --line:#dfe5e0;
+  --accent:#157347; --accent-ink:#ffffff; --accent-soft:#e2f2e9;
+  --warn:#9a5b00; --warn-soft:#fff4dc; --bad:#b42318;
+  --home:#1f5fbf; --draw:#8b958f; --away:#c2500f;
+  --t3:#0f6b3f; --t2:#1d7fa8; --t1:#8a6a00; --t0:#6b756f;
+  --display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1512; --panel:#16201b; --ink:#e7eeea; --muted:#96a59d; --line:#27342d;
+    --accent:#2fae74; --accent-ink:#06130c; --accent-soft:#143024;
+    --warn:#f1b24a; --warn-soft:#33290f; --bad:#ff8177;
+    --home:#74a7ff; --draw:#7a8880; --away:#ff9457;
+    --t3:#46d695; --t2:#62c3ea; --t1:#e4c04a; --t0:#96a59d;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1512; --panel:#16201b; --ink:#e7eeea; --muted:#96a59d; --line:#27342d;
+  --accent:#2fae74; --accent-ink:#06130c; --accent-soft:#143024;
+  --warn:#f1b24a; --warn-soft:#33290f; --bad:#ff8177;
+  --home:#74a7ff; --draw:#7a8880; --away:#ff9457;
+  --t3:#46d695; --t2:#62c3ea; --t1:#e4c04a; --t0:#96a59d;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{background:var(--accent);color:var(--accent-ink);padding-top:env(safe-area-inset-top,0px)}
+.head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-block:16px}
+h1{margin:0;font:800 26px/1.1 var(--display);font-stretch:87.5%;letter-spacing:.01em;text-transform:uppercase}
+.sub{opacity:.9;font-size:13.5px;margin-top:2px}
+h3{font:700 17px/1.25 var(--display);font-stretch:87.5%;margin:24px 0 8px;text-wrap:balance}
+main{padding-block:14px 48px}
+button{font:600 14px var(--body);border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px;border-radius:9px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+header button.primary{background:var(--accent-ink);color:var(--accent);border-color:var(--accent-ink)}
+button:disabled{opacity:.55;cursor:default}
+
+.progress{height:4px;background:var(--line);overflow:hidden}
+.progress div{height:100%;background:var(--accent);width:0;transition:width .25s}
+.status{font-size:13px;color:var(--muted);margin:8px 0}
+.err{color:var(--bad)}
+
+.controls{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin:12px 0}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 16px;align-items:end}
+.controls label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:var(--muted);min-width:0}
+.controls label.chk{flex-direction:row;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--ink)}
+.controls select,.controls input[type=number]{font:500 14.5px var(--body);padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);width:100%}
+.controls input[type=range]{width:100%;accent-color:var(--accent)}
+.big{font:800 22px var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
+details.more{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+details.more>summary,details.help>summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--accent)}
+.morebody{display:grid;gap:12px;margin-top:10px}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px 16px}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 12px;margin:8px 0}
+.hint{font-size:12.5px;color:var(--muted);font-weight:400}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-top:6px;overflow-x:auto;scrollbar-width:none}
+.tabs button{border:none;border-bottom:3px solid transparent;border-radius:0;background:none;color:var(--muted);padding:10px 12px;white-space:nowrap;font-weight:600}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.hidden{display:none}
+
+.summary{margin:14px 0 10px;display:grid;gap:6px}
+.summary b{font-variant-numeric:tabular-nums}
+details.help{font-size:13.5px}
+details.help ul{margin:8px 0 0;padding-left:18px;color:var(--muted)}
+details.help li{margin:4px 0}
+.note{background:var(--warn-soft);border-radius:9px;padding:10px 12px;font-size:13.5px;margin:12px 0}
+.empty{color:var(--muted);padding:28px 0;text-align:center}
+
+/* pick cards */
+.picklist{display:grid;gap:8px}
+.pick{display:grid;grid-template-columns:86px minmax(0,1fr);gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;align-items:center}
+.conf{text-align:center;border-right:1px solid var(--line);padding-right:12px}
+.conf b{display:block;font:800 26px/1 var(--display);font-variant-numeric:tabular-nums}
+.conf span{display:block;font-size:11px;font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.t3{color:var(--t3)} .t2{color:var(--t2)} .t1{color:var(--t1)} .t0{color:var(--t0)}
+.ptitle{font-weight:700;font-size:16px;overflow-wrap:anywhere}
+.pmatch{font-size:14px;overflow-wrap:anywhere}
+.pmeta{font-size:12.5px;color:var(--muted)}
+.facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.facts span{font-size:12px;background:var(--bg);border-radius:6px;padding:2px 8px;color:var(--muted);font-variant-numeric:tabular-nums}
+.facts span b{color:var(--ink);font-weight:600}
+.facts .good b{color:var(--t3)}
+.morebtn{display:block;margin:14px auto 0}
+
+/* match cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px;margin-top:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;min-width:0}
+.card .meta{font-size:12px;color:var(--muted)}
+.card .teams{font-weight:700;margin:3px 0 8px;font-size:16px;overflow-wrap:anywhere}
+.xg{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.xg b{color:var(--ink);font-variant-numeric:tabular-nums}
+.bar{display:flex;height:24px;border-radius:6px;overflow:hidden;margin:8px 0 4px;font-size:11.5px;color:#fff;font-weight:700}
+.bar div{display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden}
+.legend{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted)}
+.mkline{font-size:12px;color:var(--muted);margin-top:6px}
+.chips{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font-size:12.5px;border:1px solid currentColor;border-radius:6px;padding:1px 7px;font-weight:500}
+.none{font-size:12.5px;color:var(--muted)}
+
+table{width:100%;border-collapse:collapse;background:var(--panel);font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600;background:var(--bg)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tablewrap{overflow-x:auto;margin:10px 0;border:1px solid var(--line);border-radius:var(--r)}
+.tablewrap table tr:last-child td{border-bottom:none}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.kpi .v{font:800 26px/1.1 var(--display);font-variant-numeric:tabular-nums}
+.kpi .l{font-size:12.5px;color:var(--muted);margin-top:4px}
+.good{color:var(--t3)} .badc{color:var(--bad)}
+.prose{max-width:760px}
+.prose li{margin:4px 0}
+.prose dt{font-weight:700;margin-top:10px}
+.prose dd{margin:2px 0 0;color:var(--muted)}
+code{font-size:12.5px;background:var(--bg);padding:1px 4px;border-radius:4px}
+@media (max-width:520px){
+  h1{font-size:22px}
+  .pick{grid-template-columns:70px minmax(0,1fr);gap:10px;padding:10px 12px}
+  .conf b{font-size:22px}
+  .conf{padding-right:8px}
+}
+@media (prefers-reduced-motion: reduce){ .progress div{transition:none} }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap head">
+    <div>
+      <h1>Football Probability Lab</h1>
+      <div class="sub">Match predictions, checked against real results.</div>
+    </div>
+    <button class="primary" id="reload">Refresh data</button>
+  </div>
+</header>
+<div class="progress"><div id="prog"></div></div>
+<main class="wrap">
+  <div class="status" id="status">Starting…</div>
+
+  <div class="controls">
+    <div class="fgrid">
+      <label>Minimum confidence <span class="big" id="thrv">70%</span>
+        <input type="range" id="thr" min="55" max="95" step="1" value="70"></label>
+      <label>Matches in the next
+        <select id="days"><option value="2">2 days</option><option value="3">3 days</option><option value="7" selected>7 days</option><option value="14">14 days</option><option value="21">21 days</option></select></label>
+      <label>Competition<select id="league"><option value="">All competitions</option></select></label>
+      <label>Type of prediction<select id="mkt">
+        <option value="">All types</option>
+        <option value="result">Who wins (result, double chance)</option>
+        <option value="goals">Total goals (over/under)</option>
+        <option value="btts">Both teams to score</option>
+        <option value="team">One team's goals</option>
+        <option value="corners">Corners (model only)</option>
+      </select></label>
+      <label>Sort by<select id="sort"><option value="prob">Most likely first</option><option value="time">Soonest first</option></select></label>
+    </div>
+    <details class="more" id="lgdet">
+      <summary>More settings</summary>
+      <div class="morebody">
+        <div class="checks">
+          <label class="chk"><input type="checkbox" id="agree"> Only picks where the model and the bookmaker agree</label>
+          <label class="chk"><input type="checkbox" id="thin" checked> Hide picks with little past evidence</label>
+          <label class="chk"><input type="checkbox" id="valueOnly"> Only picks where the bookmaker's odds beat the fair price</label>
+        </div>
+        <label>Bookmaker weight <span class="big" id="mwv">50%</span>
+          <input type="range" id="mw" min="0" max="100" step="5" value="50">
+          <span class="hint">How much to trust the bookmaker's odds over the model when both exist. The app sets this from past results each time it loads.</span></label>
+        <div>
+          <label>Leagues to load (<span id="lgcount">0</span> selected)</label>
+          <div class="lgrid" id="lgrid"></div>
+          <div class="row"><button id="lgall">Select all</button><button id="lgnone">Clear</button><button id="clearcache">Clear downloaded match data</button>
+            <label style="flex-direction:row;align-items:center;gap:6px">History <input type="number" id="hist" min="120" max="720" value="365" style="width:80px"> days</label></div>
+          <p class="hint">After changing leagues, press "Refresh data". A league's first load takes a minute or two; after that it's quick. Loading a league's lower division too improves ratings for promoted and relegated teams.</p>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button data-t="picks" class="on">Best picks</button>
+    <button data-t="matches">By match</button>
+    <button data-t="backtest">Track record</button>
+    <button data-t="log">My picks</button>
+    <button data-t="about">How it works</button>
+  </div>
+
+  <section id="t-picks"><p class="empty">Loading the latest matches and results…</p></section>
+  <section id="t-matches" class="hidden"></section>
+  <section id="t-backtest" class="hidden">
+    <p class="status" style="margin-top:14px">This replays the past year week by week. Each week is predicted using only earlier matches, then compared with what really happened. It uses your current filters.</p>
+    <button class="primary" id="runbt">Run the test</button>
+    <div id="btout"></div>
+  </section>
+  <section id="t-log" class="hidden">
+    <p class="status" style="margin-top:14px">Every time you refresh, the picks on screen are saved here with their probability and odds. They're never changed afterwards, and they're marked won or lost once the match is played. This is the fairest record of how the app really does.</p>
+    <div class="row"><button id="exportbtn">Export backup</button><button id="importbtn">Import backup</button></div>
+    <input type="file" id="importfile" accept="application/json,.json" class="hidden">
+    <p class="status" id="logmsg">This record is stored in this browser only. To carry it to another device, export a backup here and import it there.</p>
+    <div id="logout"></div>
+  </section>
+  <section id="t-about" class="hidden prose">
+    <h3>What the words mean</h3>
+    <dl>
+      <dt>Confidence</dt><dd>The chance the prediction comes true. 80% means about 4 in 5 similar predictions were right in the past, so 1 in 5 still loses.</dd>
+      <dt>Model</dt><dd>The app's own estimate, worked out from each team's goals, shots and recent results.</dd>
+      <dt>Bookmaker</dt><dd>The chance implied by the betting odds after removing the bookmaker's margin. On past matches this has been more accurate than the model.</dd>
+      <dt>Past picks like this</dt><dd>How often the app's earlier predictions of the same kind and confidence came true.</dd>
+      <dt>Fair odds and edge</dt><dd>Fair odds are 1 ÷ confidence. Edge is how much better the bookmaker's price is than that. A positive edge is rare and often just noise.</dd>
+      <dt>Expected goals</dt><dd>How many goals the app expects each side to score on average. It's a prediction, not shot-by-shot xG.</dd>
+      <dt>Double chance</dt><dd>"Team or draw" wins if that team wins or the match is drawn.</dd>
+      <dt>Draw-no-bet</dt><dd>Wins if the team wins. If it's a draw, the stake is returned.</dd>
+    </dl>
+    <h3>Where the data comes from</h3>
+    <ul>
+      <li><b>ESPN public feeds</b> (<code>site.api.espn.com</code> and <code>sports.core.api.espn.com</code>): fixtures, scores, shots, corners, and DraftKings odds for about 36 leagues. They're unofficial and free, and ESPN could change or limit them at any time.</li>
+      <li><b>GitHub: martj42/international_results</b>: national-team results and fixtures.</li>
+      <li><b>GitHub: openfootball/football.json</b>: a backup used only if ESPN can't be reached.</li>
+    </ul>
+    <h3>How a prediction is made</h3>
+    <ol>
+      <li><b>Team ratings.</b> Every team gets an attack and a defence rating from its results, with recent games counting more. Goals are mixed with shots, which smooths out lucky and unlucky scorelines.</li>
+      <li><b>Tuning.</b> For each league the app tries several settings, plus a second rating system (Elo), and keeps whatever predicted past scores best.</li>
+      <li><b>Scores.</b> The ratings give each side's expected goals. From those the app works out the chance of every scoreline, and from that every type of prediction.</li>
+      <li><b>Bookmaker blend.</b> Where odds exist, they're mixed in at the bookmaker weight. On past matches the bookmaker alone did best, so that weight is usually 100%.</li>
+      <li><b>Reality check.</b> Each kind of prediction is corrected to match how often it actually came true over the past year.</li>
+      <li><b>Corners.</b> Teams have separate corner ratings. Corner predictions come from the model alone and are less reliable than goal predictions.</li>
+    </ol>
+    <h3>Limits</h3>
+    <ul>
+      <li>Football is unpredictable. Even bookmakers pick the winner only about half the time. High-confidence picks are mostly safe lines such as "over 0.5 goals" or a strong favourite not losing.</li>
+      <li>Injuries, line-ups and motivation reach the app only through the bookmaker's odds.</li>
+      <li>Several picks from the same match win or lose together. Combining picks into one bet multiplies the risk: four 80% picks all come in only about 41% of the time.</li>
+      <li>This is for analysis and entertainment. It isn't financial advice.</li>
+    </ul>
+    <h3>Technical details from this load</h3>
+    <div id="tunelist"></div>
+    <h3>Sources loaded</h3>
+    <div id="srclist"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+// ======================= configuration =======================
+const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/soccer/';
+const INTL_CSV = 'https://raw.githubusercontent.com/martj42/international_results/master/results.csv';
+const OF_RAW = 'https://raw.githubusercontent.com/openfootball/football.json/master/';
+const OF_API = 'https://api.github.com/repos/openfootball/football.json/contents/';
+const DAY = 86400000, MAXG = 10, THIN = 40;
+const LEAGUES = [
+  ['eng.1','England · Premier League',1],['eng.2','England · Championship',1],['eng.3','England · League One',0],['eng.4','England · League Two',0],
+  ['esp.1','Spain · LaLiga',1],['esp.2','Spain · LaLiga 2',0],['ger.1','Germany · Bundesliga',1],['ger.2','Germany · 2. Bundesliga',0],
+  ['ita.1','Italy · Serie A',1],['ita.2','Italy · Serie B',0],['fra.1','France · Ligue 1',1],['fra.2','France · Ligue 2',0],
+  ['ned.1','Netherlands · Eredivisie',1],['ned.2','Netherlands · Eerste Divisie',0],['por.1','Portugal · Primeira Liga',1],
+  ['bel.1','Belgium · Pro League',1],['sco.1','Scotland · Premiership',0],['tur.1','Turkey · Süper Lig',1],['gre.1','Greece · Super League',0],
+  ['aut.1','Austria · Bundesliga',0],['sui.1','Switzerland · Super League',0],['den.1','Denmark · Superliga',0],['nor.1','Norway · Eliteserien',0],
+  ['swe.1','Sweden · Allsvenskan',0],['rus.1','Russia · Premier League',0],['usa.1','USA · MLS',1],['mex.1','Mexico · Liga MX',0],
+  ['bra.1','Brazil · Série A',1],['bra.2','Brazil · Série B',0],['arg.1','Argentina · Liga Profesional',0],['chi.1','Chile · Primera División',0],
+  ['jpn.1','Japan · J1 League',0],['ksa.1','Saudi Arabia · Pro League',0],['aus.1','Australia · A-League',0],['chn.1','China · Super League',0],
+  ['rsa.1','South Africa · Premiership',0],['intl','International (national teams, GitHub)',1]
+];
+const NAMES = Object.fromEntries(LEAGUES.map(l=>[l[0],l[1]]));
+const OF_MAP = {'eng.1':'en.1','eng.2':'en.2','ger.1':'de.1','esp.1':'es.1','ita.1':'it.1','fra.1':'fr.1','ned.1':'nl.1','por.1':'pt.1','bra.1':'br.1'};
+// neighbouring divisions, used to rate promoted / relegated teams
+const ADJ = {};
+for(const [up,low] of [['eng.1','eng.2'],['eng.2','eng.3'],['eng.3','eng.4'],['esp.1','esp.2'],['ger.1','ger.2'],['ita.1','ita.2'],['fra.1','fra.2'],['ned.1','ned.2'],['bra.1','bra.2']]){
+  (ADJ[up]=ADJ[up]||{}).lower=low; (ADJ[low]=ADJ[low]||{}).upper=up;
+}
+const STEP_UP = {a:0.75, d:1.30};    // lower-division rating carried into the higher division
+const STEP_DOWN = {a:1.30, d:0.78};  // higher-division rating carried into the lower division
+
+// ======================= helpers =======================
+const S = { comps:{}, sources:[], loaded:false, stale:{}, models:{}, upcoming:[], opts:{}, cal:null, calEx:null, usePriors:true };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct = p => (p*100).toFixed(1)+'%';
+const ymd = t => new Date(t).toISOString().slice(0,10).replace(/-/g,'');
+const tick = () => new Promise(r=>setTimeout(r,0));
+const lsGet = (k,d) => { try{ const v=localStorage.getItem(k); return v===null? d : JSON.parse(v); }catch(e){ return d; } };
+const lsSet = (k,v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+async function getJSON(u){ const r = await fetch(u); if(!r.ok) throw new Error(r.status+' '+u); return r.json(); }
+async function getText(u){ const r = await fetch(u); if(!r.ok) throw new Error(r.status+' '+u); return r.text(); }
+function setProg(f){ $('prog').style.width = Math.round(Math.min(1,Math.max(0,f))*100)+'%'; }
+
+// --- tiny IndexedDB cache (falls back to memory) ---
+const mem = new Map(); let dbp = null;
+function db(){
+  if(dbp) return dbp;
+  dbp = new Promise(res=>{
+    try{ const r = indexedDB.open('fpl-cache',1);
+      r.onupgradeneeded = ()=> r.result.createObjectStore('days');
+      r.onsuccess = ()=> res(r.result); r.onerror = ()=> res(null);
+    }catch(e){ res(null); }
+  });
+  return dbp;
+}
+async function cget(k){ if(mem.has(k)) return mem.get(k); const d=await db(); if(!d) return undefined;
+  return new Promise(res=>{ try{ const q=d.transaction('days').objectStore('days').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>res(undefined);}catch(e){res(undefined);} }); }
+async function cput(k,v){ mem.set(k,v); const d=await db(); if(!d) return;
+  try{ d.transaction('days','readwrite').objectStore('days').put(v,k); }catch(e){} }
+// clears downloaded match days only; the pick log and saved odds are kept
+const isDayKey = k => typeof k==='string' && k!=='picklog' && !k.startsWith('odds|') && !k.startsWith('noodds|');
+async function cclear(){
+  for(const k of [...mem.keys()]) if(isDayKey(k)) mem.delete(k);
+  const d=await db(); if(!d) return;
+  await new Promise(res=>{ try{ const tx=d.transaction('days','readwrite'), st=tx.objectStore('days'), q=st.openKeyCursor();
+    q.onsuccess=()=>{ const c=q.result; if(!c) return; if(isDayKey(c.key)) st.delete(c.key); c.continue(); };
+    tx.oncomplete=res; tx.onerror=res; tx.onabort=res; }catch(e){ res(); } });
+}
+async function savedOdds(){
+  const out={}; mem.forEach((v,k)=>{ if(typeof k==='string' && k.startsWith('odds|')) out[k]=v; });
+  const d=await db(); if(!d) return out;
+  await new Promise(res=>{ try{ const q=d.transaction('days').objectStore('days').openCursor();
+    q.onsuccess=()=>{ const c=q.result; if(!c) return res(); if(String(c.key).startsWith('odds|')) out[c.key]=c.value; c.continue(); }; q.onerror=res; }catch(e){ res(); } });
+  return out;
+}
+
+async function pool(tasks, n, onTick){
+  let i=0, done=0; const out=new Array(tasks.length);
+  await Promise.all(Array.from({length:Math.min(n,tasks.length)}, async()=>{
+    while(i<tasks.length){ const k=i++; try{ out[k]=await tasks[k](); }catch(e){ out[k]={error:e}; } done++; if(onTick) onTick(done, tasks.length); }
+  }));
+  return out;
+}
+
+// ======================= ESPN loader =======================
+function am(x){
+  if(x==null) return null;
+  if(typeof x==='string'){ if(/even/i.test(x)) return 2; x=parseFloat(x.replace('+','')); }
+  if(!isFinite(x) || x===0) return null;
+  return x>0 ? 1+x/100 : 1+100/(-x);
+}
+function parseOdds(arr){
+  if(!Array.isArray(arr)) return null;
+  const o = arr.find(x=>x && typeof x==='object'); if(!o) return null;
+  const ml = o.moneyline || {};
+  const pick = s => s && ((s.close && s.close.odds) || (s.open && s.open.odds));
+  let h=am(pick(ml.home)), d=am(pick(ml.draw)), a=am(pick(ml.away));
+  if(!h) h=am(o.homeTeamOdds && o.homeTeamOdds.moneyLine);
+  if(!a) a=am(o.awayTeamOdds && o.awayTeamOdds.moneyLine);
+  if(!d) d=am(o.drawOdds && o.drawOdds.moneyLine);
+  const tot=o.total||{}, ov=am(pick(tot.over)), un=am(pick(tot.under));
+  let line=o.overUnder; const ln = tot.over && ((tot.over.close && tot.over.close.line) || (tot.over.open && tot.over.open.line));
+  if(ln) line=parseFloat(String(ln).replace(/[ou]/i,''));
+  const r={};
+  if(h>1 && d>1 && a>1) Object.assign(r,{h,d,a});
+  if(line>0 && ov>1 && un>1 && Math.abs(line*2-Math.round(line*2))<1e-9 && line%1!==0) Object.assign(r,{line,o:ov,u:un});
+  return Object.keys(r).length ? r : null;
+}
+function parseEvent(e, slug){
+  const c = e.competitions && e.competitions[0]; if(!c || !c.competitors) return null;
+  const H=c.competitors.find(x=>x.homeAway==='home'), A=c.competitors.find(x=>x.homeAway==='away'); if(!H||!A) return null;
+  const st = (c.status && c.status.type) || (e.status && e.status.type) || {};
+  if(/POSTPONED|CANCEL|ABANDON|SUSPEND|FORFEIT|DELAYED/i.test(st.name||'')) return null;
+  const done = !!st.completed;
+  const sc = x => typeof x.score==='object' && x.score ? Number(x.score.value) : Number(x.score);
+  const hg = done ? sc(H) : null, ag = done ? sc(A) : null;
+  if(done && (!isFinite(hg) || !isFinite(ag))) return null;
+  const rec = { id:e.id, t:Date.parse(e.date), home:H.team.displayName, away:A.team.displayName, hg, ag,
+    neutral:!!c.neutralSite, state:st.state||'', odds:parseOdds(c.odds), comp:slug };
+  if(done){
+    // match statistics: shots, shots on target, corners; minute of the first red card
+    const stv=(x,n)=>{ const s=(x.statistics||[]).find(s=>s.name===n), v=s?parseFloat(s.displayValue):NaN; return isFinite(v)?v:null; };
+    const sh=stv(H,'totalShots'), sa=stv(A,'totalShots'), soh=stv(H,'shotsOnTarget'), soa=stv(A,'shotsOnTarget'), ch=stv(H,'wonCorners'), ca=stv(A,'wonCorners');
+    if(sh!=null && sa!=null && soh!=null && soa!=null && sh+sa>0){ rec.sh=sh; rec.sa=sa; rec.soh=Math.min(soh,sh); rec.soa=Math.min(soa,sa); }
+    if(ch!=null && ca!=null && ch+ca>0){ rec.ch=ch; rec.ca=ca; }
+    for(const d of (c.details||[])) if(d && d.redCard && d.clock){ const mn=Math.min(90,(+d.clock.value||0)/60); if(rec.rc==null || mn<rec.rc) rec.rc=mn; }
+  }
+  return rec;
+}
+function calDays(L){
+  const cal = (L && L.calendar) || [];
+  const out=[];
+  for(const c of cal){
+    if(typeof c==='string') out.push(c.slice(0,10).replace(/-/g,''));
+    else if(c && c.entries) for(const en of c.entries) if(en.startDate) out.push(String(en.startDate).slice(0,10).replace(/-/g,''));
+  }
+  return out;
+}
+async function espnDay(slug, day, now){
+  const key = 'v2|'+slug+'|'+day;   // v2: records include shots, corners and red cards
+  const cached = await cget(key);
+  if(cached) return cached;
+  const j = await getJSON(`${ESPN}${slug}/scoreboard?dates=${day}`);
+  const recs = (j.events||[]).map(e=>{ try{ return parseEvent(e,slug); }catch(err){ return null; } }).filter(Boolean);
+  // ESPN drops odds once a match is over: remember pre-match odds, re-attach them later
+  for(const r of recs){
+    if(r.odds && r.state!=='post') await cput('odds|'+r.id, r.odds);
+    else if(!r.odds){ const o=await cget('odds|'+r.id); if(o) r.odds=o; }
+  }
+  // cache only days that are safely in the past and fully finished
+  const dayT = Date.UTC(+day.slice(0,4), +day.slice(4,6)-1, +day.slice(6,8));
+  if(dayT < now - 3*DAY && recs.every(r=>r.state==='post')) await cput(key, recs);
+  return recs;
+}
+
+// closing odds for a finished match, from ESPN's core feed (fetched once per match, then cached for good)
+const CORE = 'https://sports.core.api.espn.com/v2/sports/soccer/leagues/';
+async function coreOdds(slug, id){
+  const c=await cget('odds|'+id); if(c) return c;
+  if(await cget('noodds|'+id)) return null;
+  let j;
+  try{ j=await getJSON(`${CORE}${slug}/events/${id}/competitions/${id}/odds`); }
+  catch(e){ if(/^404/.test(String(e.message))) await cput('noodds|'+id,1); return null; }
+  for(const o of (j.items||[])){
+    if(!o || typeof o!=='object') continue;
+    const h=am(o.homeTeamOdds && o.homeTeamOdds.moneyLine), d=am(o.drawOdds && o.drawOdds.moneyLine), a=am(o.awayTeamOdds && o.awayTeamOdds.moneyLine);
+    if(!(h>1 && d>1 && a>1)) continue;
+    const r={h,d,a}, line=o.overUnder, ov=am(o.overOdds), un=am(o.underOdds);
+    if(line>0 && line%1!==0 && Math.abs(line*2-Math.round(line*2))<1e-9 && ov>1 && un>1) Object.assign(r,{line,o:ov,u:un});
+    await cput('odds|'+id, r); return r;
+  }
+  await cput('noodds|'+id,1); return null;
+}
+
+// ======================= GitHub loaders =======================
+function parseCSV(text){
+  const rows=[];
+  for(const line of text.split(/\r?\n/)){
+    if(!line) continue; const f=[]; let cur='', q=false;
+    for(let i=0;i<line.length;i++){ const c=line[i];
+      if(q){ if(c==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+      else if(c==='"') q=true; else if(c===','){ f.push(cur); cur=''; } else cur+=c; }
+    f.push(cur); rows.push(f);
+  }
+  return rows;
+}
+function parseIntl(text){
+  const rows=parseCSV(text), h=rows.shift(), ix=k=>h.indexOf(k);
+  const since=Date.now()-4*365*DAY, out=[];
+  for(const r of rows){
+    const t=Date.parse(r[ix('date')]+'T15:00:00Z'); if(!(t>=since)) continue;
+    const hs=r[ix('home_score')], as=r[ix('away_score')], played = hs!=='NA' && hs!=='' && as!=='NA' && as!=='';
+    const tour=r[ix('tournament')]||'';
+    out.push({ id:'i'+t+r[ix('home_team')], t, home:r[ix('home_team')], away:r[ix('away_team')], hg:played?+hs:null, ag:played?+as:null,
+      neutral:r[ix('neutral')]==='TRUE', w0: tour==='Friendly'?0.5 : /qualification/i.test(tour)?0.9:1, state: played?'post':'pre', odds:null, comp:'intl', round:tour });
+  }
+  return out;
+}
+let ofCfg=null;
+async function openfootball(slug){
+  const code = OF_MAP[slug]; if(!code) return [];
+  if(!ofCfg){ ofCfg = (async()=>{ try{ const root=await getJSON(OF_API); const dirs=root.filter(x=>x.type==='dir').map(x=>x.name);
+      return { split:dirs.filter(d=>/^\d{4}-\d{2}$/.test(d)).sort().reverse().slice(0,2), year:dirs.filter(d=>/^\d{4}$/.test(d)).sort().reverse().slice(0,2) };
+    }catch(e){ return {split:['2026-27','2025-26'], year:['2026','2025']}; } })(); }
+  const cfg = await ofCfg, folders = code==='br.1' ? cfg.year : cfg.split; let out=[];
+  for(const f of folders){ try{ const j=await getJSON(OF_RAW+f+'/'+code+'.json');
+    for(const m of (j.matches||[])){ if(!m.team1||!m.team2||!m.date) continue; const ft=m.score&&m.score.ft;
+      out.push({id:f+m.date+m.team1, t:Date.parse(m.date+'T'+(m.time||'15:00')+':00Z'), home:m.team1, away:m.team2, hg:ft?ft[0]:null, ag:ft?ft[1]:null,
+        neutral:false, state:ft?'post':'pre', odds:null, comp:slug}); } }catch(e){} }
+  return out;
+}
+
+// ======================= load orchestration =======================
+function selectedLeagues(){ return [...document.querySelectorAll('#lgrid input:checked')].map(i=>i.value); }
+
+async function loadAll(){
+  const btn=$('reload'); btn.disabled=true;
+  S.comps={}; S.sources=[]; S.loaded=false; setProg(0);
+  const now=Date.now(), hist=Math.max(120, Math.min(720, +$('hist').value||365)), ahead=21;
+  const from=now-hist*DAY, to=now+ahead*DAY;
+  const sel=selectedLeagues(); lsSet('fpl-leagues', sel); lsSet('fpl-hist', hist);
+  const clubs=sel.filter(s=>s!=='intl');
+  // 1) calendars
+  $('status').textContent='Reading league calendars from ESPN…';
+  const cal = await pool(clubs.map(slug=>async()=>{
+    const cur = await getJSON(`${ESPN}${slug}/scoreboard`);
+    let days = calDays(cur.leagues && cur.leagues[0]);
+    const firstCur = days.length ? days[0] : ymd(now);
+    if(ymd(from) < firstCur){ try{ const prev = await getJSON(`${ESPN}${slug}/scoreboard?dates=${ymd(from)}`); days = days.concat(calDays(prev.leagues && prev.leagues[0])); }catch(e){} }
+    days = [...new Set(days)].filter(d=> d>=ymd(from) && d<=ymd(to)).sort();
+    return {slug, days};
+  }), 8, (d,n)=>setProg(0.08*d/n));
+  // 2) match days
+  const tasks=[], bySlug={};
+  cal.forEach((c,i)=>{ const slug=clubs[i]; if(c.error){ S.sources.push({src:'ESPN '+slug, ok:false, err:String(c.error.message||c.error)}); return; }
+    bySlug[slug]=[]; for(const d of c.days) tasks.push(async()=>{ const r=await espnDay(slug,d,now); bySlug[slug].push(...r); }); });
+  $('status').textContent=`Downloading ${tasks.length} match days (finished days come from the cache)…`;
+  let fails=0;
+  const res = await pool(tasks, 6, (d,n)=>{ setProg(0.08+0.47*d/n); if(d%20===0) $('status').textContent=`Downloading match days… ${d}/${n}`; });
+  res.forEach(r=>{ if(r && r.error) fails++; });
+  for(const slug of clubs){
+    if(!bySlug[slug]) { const of = await openfootball(slug); if(of.length){ S.comps[slug]=dedupe(of); S.sources.push({src:'openfootball (backup) '+slug, ok:true, n:of.length}); } continue; }
+    const ms = dedupe(bySlug[slug]);
+    if(ms.length){ S.comps[slug]=ms; S.sources.push({src:'ESPN '+slug, slug, ok:true, n:ms.length, odds:0}); }
+  }
+  // 2b) closing odds for finished matches
+  const need=[]; for(const slug of clubs) for(const m of (S.comps[slug]||[])) if(m.hg!==null && !(m.odds && m.odds.h) && /^\d+$/.test(String(m.id))) need.push(m);
+  if(need.length){
+    $('status').textContent=`Getting closing odds for ${need.length} past matches (downloaded once, then cached)…`;
+    await pool(need.map(m=>async()=>{ const o=await coreOdds(m.comp, m.id); if(o) m.odds=o; }), 10,
+      (d,n)=>{ setProg(0.55+0.25*d/n); if(d%50===0) $('status').textContent=`Getting closing odds for past matches… ${d}/${n} (downloaded once, then cached)`; });
+  }
+  for(const s of S.sources) if(s.slug && S.comps[s.slug]) s.odds=S.comps[s.slug].filter(m=>m.odds&&m.odds.h).length;
+  if(fails) S.sources.push({src:'ESPN', ok:false, err:fails+' match-day requests failed (they will be retried on the next refresh)'});
+  // 3) internationals from GitHub
+  if(sel.includes('intl')){
+    $('status').textContent='Downloading international results from GitHub…';
+    try{ const ms=parseIntl(await getText(INTL_CSV)); S.comps.intl=ms; S.sources.push({src:'GitHub martj42/international_results', ok:true, n:ms.length}); }
+    catch(e){ S.sources.push({src:'GitHub martj42/international_results', ok:false, err:String(e.message||e)}); }
+  }
+  setProg(0.8);
+  await prepare();
+  S.loaded=true;
+  buildModels(); fillLeagueSelect(); renderAll(); await updateLog(); setProg(1);
+  btn.disabled=false;
+}
+function dedupe(ms){
+  const m=new Map(); for(const x of ms){ const p=m.get(x.id); if(!p || (p.hg===null && x.hg!==null)) m.set(x.id,x); }
+  return [...m.values()].sort((a,b)=>a.t-b.t);
+}
+
+// ======================= model =======================
+function optsFor(code){
+  return code==='intl' ? {halfLife:365,prior:4,rho:-0.08,maxAge:4*365,unknown:{a:0.75,d:1.3}}
+                       : {halfLife:240,prior:3,rho:-0.08,maxAge:2*365,unknown:{a:0.85,d:1.15}};
+}
+// opts.priors: Map team -> {a,d,w} starting ratings (from a neighbouring division)
+function fitModel(matches, refTime, opts){
+  const hl=opts.halfLife, K=opts.prior, idx=new Map(), T=[], data=[];
+  for(const m of matches){
+    if(m.hg===null || m.t>=refTime) continue;
+    const age=(refTime-m.t)/DAY; if(age>opts.maxAge) continue;
+    let w=(m.w0||1)*Math.pow(0.5, age/hl);
+    // a match played a long time with ten men says less about normal strength
+    if(opts.redR>0 && m.rc!=null) w*=Math.max(0.05, 1-opts.redR*(90-m.rc)/90);
+    for(const t of [m.home,m.away]) if(!idx.has(t)){ idx.set(t,T.length); T.push(t); }
+    // shot units: a shot on target counts 1, a shot off target 0.1
+    const has=m.soh!=null;
+    data.push({h:idx.get(m.home), a:idx.get(m.away), hg:m.hg, ag:m.ag, w, n:m.neutral,
+      uh: has ? m.soh+0.1*Math.max(0,m.sh-m.soh) : null, ua: has ? m.soa+0.1*Math.max(0,m.sa-m.soa) : null});
+  }
+  const n=T.length; if(data.length<20) return null;
+  // shot-based ratings: mix each side's goals with the goals its shots would normally produce
+  const sW=opts.shotW||0;
+  if(sW>0){
+    let g=0,u=0; for(const d of data) if(d.uh!=null){ g+=d.w*(d.hg+d.ag); u+=d.w*(d.uh+d.ua); }
+    const conv=u>0 ? g/u : 0;
+    if(conv>0) for(const d of data) if(d.uh!=null){ d.hg=(1-sW)*d.hg+sW*conv*d.uh; d.ag=(1-sW)*d.ag+sW*conv*d.ua; }
+  }
+  let sw=0,sg=0,shg=0,sag=0;
+  const tw=new Float64Array(n);
+  for(const d of data){ sw+=d.w; sg+=d.w*(d.hg+d.ag); tw[d.h]+=d.w; tw[d.a]+=d.w; if(!d.n){ shg+=d.w*d.hg; sag+=d.w*d.ag; } }
+  let mu=sg/sw/2, H=sag>0?Math.max(1,Math.min(1.8,shg/sag)):1.25;
+  // per-team prior: mean (pa, pd) and strength in pseudo-matches
+  const pa=new Float64Array(n).fill(1), pd=new Float64Array(n).fill(1), ps=new Float64Array(n).fill(K);
+  if(opts.priors) T.forEach((t,i)=>{ const p=opts.priors.get(t); if(p){ pa[i]=p.a; pd[i]=p.d; ps[i]=K+Math.min(p.w,8); } });
+  const A=Float64Array.from(pa), D=Float64Array.from(pd);
+  const iters=opts.iters||60;
+  for(let it=0; it<iters; it++){
+    const na=new Float64Array(n), da=new Float64Array(n);
+    for(let i=0;i<n;i++){ da[i]=ps[i]*mu; na[i]=da[i]*pa[i]; }
+    for(const d of data){ const hf=d.n?1:H; na[d.h]+=d.w*d.hg; da[d.h]+=d.w*mu*hf*D[d.a]; na[d.a]+=d.w*d.ag; da[d.a]+=d.w*mu*D[d.h]; }
+    for(let i=0;i<n;i++) A[i]=na[i]/da[i];
+    const nd=new Float64Array(n), dd=new Float64Array(n);
+    for(let i=0;i<n;i++){ dd[i]=ps[i]*mu; nd[i]=dd[i]*pd[i]; }
+    for(const d of data){ const hf=d.n?1:H; nd[d.a]+=d.w*d.hg; dd[d.a]+=d.w*mu*hf*A[d.h]; nd[d.h]+=d.w*d.ag; dd[d.h]+=d.w*mu*A[d.a]; }
+    for(let i=0;i<n;i++) D[i]=nd[i]/dd[i];
+    let la=0,ld=0; for(let i=0;i<n;i++){ la+=Math.log(A[i]); ld+=Math.log(D[i]); }
+    const ga=Math.exp(la/n), gd=Math.exp(ld/n); for(let i=0;i<n;i++){ A[i]/=ga; D[i]/=gd; }
+    let hn=0,hd=0,tn=0,td=0;
+    for(const d of data){ const hf=d.n?1:H; if(!d.n){ hn+=d.w*d.hg; hd+=d.w*mu*A[d.h]*D[d.a]; } tn+=d.w*(d.hg+d.ag); td+=d.w*(hf*A[d.h]*D[d.a]+A[d.a]*D[d.h]); }
+    if(hd>0) H=Math.max(0.9,Math.min(1.8,hn/hd)); mu=tn/td;
+  }
+  const ratings=new Map(); T.forEach((t,i)=>ratings.set(t,{a:A[i],d:D[i],w:tw[i]}));
+  if(opts.priors) for(const [t,p] of opts.priors) if(!ratings.has(t)) ratings.set(t,{a:p.a,d:p.d,w:0});
+  return {ratings, mu, H, rho:opts.rho, unknown:opts.unknown};
+}
+// fit a competition, giving teams that moved divisions a starting rating from the neighbouring division
+const feederCache=new Map();
+function feeder(code, ref){
+  const k=code+'|'+ref;
+  if(!feederCache.has(k)) feederCache.set(k, S.comps[code] ? fitModel(S.comps[code], ref, {...(S.opts[code]||optsFor(code)), iters:25, redR:S.redR||0}) : null);
+  return feederCache.get(k);
+}
+function fitFor(code, ref, opts){
+  let priors=null; const adj=ADJ[code];
+  if(adj && S.usePriors){
+    priors=new Map();
+    for(const [side,tr] of [['lower',STEP_UP],['upper',STEP_DOWN]]){
+      const c=adj[side]; if(!c || !S.comps[c]) continue;
+      const fm=feeder(c, ref); if(!fm) continue;
+      for(const [t,r] of fm.ratings) if(r.w>=4){ const p=priors.get(t); if(!p || r.w>p.w) priors.set(t,{a:r.a*tr.a, d:r.d*tr.d, w:r.w}); }
+    }
+  }
+  const model=fitModel(S.comps[code], ref, {...opts, priors, redR: opts.redR!==undefined ? opts.redR : (S.redR||0)});
+  if(model){
+    model.elo=buildElo(S.comps[code], ref, opts); model.e=opts.eloW||0;
+    // corners get their own attack/defence ratings (skipped during tuning runs)
+    if(!opts.light && S.corners && S.corners[code]) model.corner=fitModel(S.corners[code], ref, {halfLife:240, prior:8, rho:0, maxAge:opts.maxAge, unknown:{a:1,d:1}, iters:25});
+  }
+  return model;
+}
+// Elo ratings from the same results: a second, independent view of who is stronger
+function buildElo(matches, refTime, opts){
+  const R=new Map(), get=t=>R.has(t)?R.get(t):1500, HFA=60, K=20, xs=[];
+  for(const m of matches){
+    if(m.hg===null || m.t>=refTime || (refTime-m.t)/DAY>opts.maxAge) continue;
+    const rh=get(m.home), ra=get(m.away), dr=rh-ra+(m.neutral?0:HFA), gd=m.hg-m.ag;
+    xs.push([dr,gd]);
+    const E=1/(1+Math.pow(10,-dr/400)), sc=gd>0?1:gd<0?0:0.5, G=gd===0?1:Math.sqrt(Math.abs(gd));
+    const d=K*(m.w0||1)*G*(sc-E); R.set(m.home,rh+d); R.set(m.away,ra-d);
+  }
+  // goal supremacy per 100 Elo points, estimated once ratings have settled (later 70% of matches)
+  let sxx=0,sxy=0; for(let i=Math.floor(xs.length*0.3); i<xs.length; i++){ const x=xs[i][0]/100; sxx+=x*x; sxy+=x*xs[i][1]; }
+  return {R, b: sxx>0 ? Math.max(0,sxy/sxx) : 0, HFA};
+}
+// expected goals: goals model, with the goal difference averaged with Elo (weight e) and a short-rest adjustment (r)
+function lam(model, m, e, r){
+  if(e===undefined) e=model.e||0;
+  if(r===undefined) r=S.restR||0;
+  const r1=model.ratings.get(m.home)||model.unknown, r2=model.ratings.get(m.away)||model.unknown;
+  const hf=m.neutral?1:model.H;
+  let lh=model.mu*hf*r1.a*r2.d, la=model.mu*r2.a*r1.d;
+  if(e>0 && model.elo){
+    const E=model.elo, rh=E.R.has(m.home)?E.R.get(m.home):1500, ra=E.R.has(m.away)?E.R.get(m.away):1500;
+    const tot=lh+la, sup=(1-e)*(lh-la)+e*E.b*(rh-ra+(m.neutral?0:E.HFA))/100;
+    lh=Math.max(0.15,(tot+sup)/2); la=Math.max(0.15,(tot-sup)/2);
+  }
+  if(r>0 && m.comp!=='intl'){
+    const sh=m.restH!=null && m.restH<4, sa=m.restA!=null && m.restA<4;
+    if(sh && !sa){ lh*=1-r; la*=1+r; } else if(sa && !sh){ la*=1-r; lh*=1+r; }
+  }
+  return [lh,la];
+}
+// days since each team's previous match in the same competition
+function annotateRest(){
+  for(const [code,ms] of Object.entries(S.comps)){
+    if(code==='intl') continue; const last=new Map();
+    for(const m of ms){
+      m.restH = last.has(m.home) ? (m.t-last.get(m.home))/DAY : null;
+      m.restA = last.has(m.away) ? (m.t-last.get(m.away))/DAY : null;
+      last.set(m.home,m.t); last.set(m.away,m.t);
+    }
+  }
+}
+function dcTau(i,j,lh,la,rho){
+  if(i===0&&j===0) return 1-lh*la*rho; if(i===0&&j===1) return 1+lh*rho; if(i===1&&j===0) return 1+la*rho; if(i===1&&j===1) return 1-rho; return 1;
+}
+function pois(l){ const p=[Math.exp(-l)]; for(let k=1;k<=MAXG;k++) p.push(p[k-1]*l/k); return p; }
+function scoreGrid(lh, la, rho){
+  const ph=pois(lh), pa=pois(la), g=[]; let tot=0;
+  for(let i=0;i<=MAXG;i++){ g.push([]); for(let j=0;j<=MAXG;j++){
+    const v=Math.max(0,ph[i]*pa[j]*dcTau(i,j,lh,la,rho)); g[i].push(v); tot+=v; } }
+  for(const r of g) for(let j=0;j<r.length;j++) r[j]/=tot;
+  return g;
+}
+function gridProbs(g, line){
+  let h=0,d=0,a=0,o=0;
+  for(let i=0;i<=MAXG;i++) for(let j=0;j<=MAXG;j++){ const v=g[i][j]; if(i>j) h+=v; else if(i===j) d+=v; else a+=v; if(line!=null && i+j>line) o+=v; }
+  return {h,d,a,o};
+}
+// re-solve (lambda_home, lambda_away) so the grid matches target 1X2 (and over/under if given)
+function solveLambdas(lh, la, tg, rho){
+  let x=Math.log(lh), y=Math.log(la);
+  const err=(x,y)=>{ const p=gridProbs(scoreGrid(Math.exp(x),Math.exp(y),rho), tg.line);
+    let e=(p.h-tg.h)**2+(p.a-tg.a)**2; if(tg.o!=null) e+=(p.o-tg.o)**2; return e; };
+  let best=err(x,y), step=0.25;
+  for(let it=0; it<80 && step>0.002; it++){
+    let moved=false;
+    for(const [dx,dy] of [[step,0],[-step,0],[0,step],[0,-step],[step,step],[-step,-step],[step,-step],[-step,step]]){
+      const e=err(x+dx,y+dy); if(e<best){ best=e; x+=dx; y+=dy; moved=true; break; }
+    }
+    if(!moved) step/=2;
+  }
+  return [Math.exp(x), Math.exp(y)];
+}
+function marketProbs(od){
+  const r={};
+  if(od && od.h){ const s=1/od.h+1/od.d+1/od.a; r.h=1/od.h/s; r.d=1/od.d/s; r.a=1/od.a/s; }
+  if(od && od.line){ const s=1/od.o+1/od.u; r.line=od.line; r.o=1/od.o/s; }
+  return r;
+}
+// key = team-independent id (used for calibration), gl = generic label
+function markets(home, away){
+  const L=[], mk=(cat,key,gl,label,f,extra)=>L.push({cat,key,gl,label,f,hit:m=>f(m.hg,m.ag),...(extra||{})});
+  mk('result','H','Home win',`${home} win`,(i,j)=>i>j,{book:'h'});
+  mk('result','D','Draw','Draw',(i,j)=>i===j,{book:'d'});
+  mk('result','A','Away win',`${away} win`,(i,j)=>i<j,{book:'a'});
+  mk('result','1X','Home or draw (1X)',`${home} or draw (1X)`,(i,j)=>i>=j);
+  mk('result','X2','Away or draw (X2)',`${away} or draw (X2)`,(i,j)=>i<=j);
+  mk('result','12','Either team wins (12)','Either team wins (12)',(i,j)=>i!==j);
+  mk('result','HDNB','Home draw-no-bet',`${home} draw-no-bet`,(i,j)=>i>j,{dnb:true});
+  mk('result','ADNB','Away draw-no-bet',`${away} draw-no-bet`,(i,j)=>i<j,{dnb:true});
+  for(const x of [0.5,1.5,2.5,3.5,4.5]){
+    mk('goals','O'+x,`Over ${x} goals`,`Over ${x} goals`,(i,j)=>i+j>x,{bookLine:x,book:'o'});
+    mk('goals','U'+x,`Under ${x} goals`,`Under ${x} goals`,(i,j)=>i+j<x,{bookLine:x,book:'u'});
+  }
+  mk('btts','BY','Both teams score: Yes','Both teams score: Yes',(i,j)=>i>0&&j>0);
+  mk('btts','BN','Both teams score: No','Both teams score: No',(i,j)=>!(i>0&&j>0));
+  for(const [t,s,g] of [[home,0,'Home'],[away,1,'Away']]){
+    mk('team',g[0]+'O0.5',`${g} over 0.5 goals`,`${t} over 0.5 goals`,(i,j)=>(s?j:i)>0);
+    mk('team',g[0]+'O1.5',`${g} over 1.5 goals`,`${t} over 1.5 goals`,(i,j)=>(s?j:i)>1);
+    mk('team',g[0]+'U1.5',`${g} under 1.5 goals`,`${t} under 1.5 goals`,(i,j)=>(s?j:i)<2);
+  }
+  // total corners (hit is null when the corner count is unknown)
+  for(const x of [7.5,8.5,9.5,10.5,11.5]){
+    const tot=m=>(m.ch==null || m.ca==null) ? null : m.ch+m.ca;
+    L.push({cat:'corners',key:'CO'+x,gl:`Over ${x} corners`,label:`Over ${x} corners`,corner:true,line:x,over:true,hit:m=>{ const c=tot(m); return c===null?null:c>x; }});
+    L.push({cat:'corners',key:'CU'+x,gl:`Under ${x} corners`,label:`Under ${x} corners`,corner:true,line:x,over:false,hit:m=>{ const c=tot(m); return c===null?null:c<x; }});
+  }
+  return L;
+}
+function poisOver(L, x){ let p=Math.exp(-L), s=p; for(let k=1;k<=Math.floor(x);k++){ p*=L/k; s+=p; } return 1-s; }
+// cal: calibration maps (or null for raw model output)
+function predict(model, m, w, cal){
+  const [lh0,la0]=lam(model,m), rho=model.rho;
+  const mp=marketProbs(m.odds);
+  const p0=gridProbs(scoreGrid(lh0,la0,rho), mp.line);
+  let lh=lh0, la=la0;
+  const blended = w>0 && (mp.h!=null || mp.o!=null);
+  if(blended){
+    const tg={ h: mp.h!=null ? (1-w)*p0.h+w*mp.h : p0.h, a: mp.a!=null ? (1-w)*p0.a+w*mp.a : p0.a };
+    if(mp.o!=null){ tg.line=mp.line; tg.o=(1-w)*p0.o+w*mp.o; }
+    [lh,la]=solveLambdas(lh0,la0,tg,rho);
+  }
+  const g=scoreGrid(lh,la,rho), cw = blended ? 1-w : 1;   // the correction was learned on the pure model
+  const cl = model.corner ? lam(model.corner, m, 0, 0) : null, cTot = cl ? cl[0]+cl[1] : 0;
+  const ms=markets(m.home,m.away).filter(k=>!k.corner || cl).map(k=>{
+    let p=0,pd=0;
+    if(k.corner){ const o=poisOver(cTot,k.line); p=k.over?o:1-o; }
+    else { for(let i=0;i<=MAXG;i++) for(let j=0;j<=MAXG;j++){ if(k.f(i,j)) p+=g[i][j]; if(i===j) pd+=g[i][j]; } }
+    if(k.dnb) p=p/(1-pd);
+    let pc=p, ev=null;
+    if(cal){ ev=applyCal(cal,k.key,p); pc=p+(k.corner?1:cw)*(ev.p-p); }
+    let odds=null;
+    if(m.odds && k.book){ if(k.bookLine!=null){ if(m.odds.line===k.bookLine) odds=m.odds[k.book]; } else if(m.odds.h) odds=m.odds[k.book]; }
+    return {...k, raw:p, p:pc, ev, odds};
+  });
+  const scores=[]; for(let i=0;i<=5;i++) for(let j=0;j<=5;j++) scores.push({s:i+'–'+j,p:g[i][j]});
+  scores.sort((a,b)=>b.p-a.p);
+  const s3=ms[0].p+ms[1].p+ms[2].p;
+  return {lh,la,lh0,la0, cl, ph:ms[0].p/s3, pd:ms[1].p/s3, pa:ms[2].p/s3, model1x2:[p0.h,p0.d,p0.a], market:mp, markets:ms, top:scores.slice(0,3)};
+}
+
+// ======================= walk-forward engine, tuning, calibration =======================
+// calls cb(model, match, weekIndex) for every played match, with a model fitted only on earlier weeks
+function walk(code, opts, cb){
+  const all=S.comps[code]; if(!all) return;
+  const played=all.filter(m=>m.hg!==null); if(played.length<60) return;
+  const start=Math.max(played[0].t+90*DAY, code==='intl'? Date.now()-365*DAY : 0);
+  const weeks=new Map();
+  for(const m of played){ if(m.t<start) continue; const wk=Math.floor((m.t-start)/(7*DAY)); if(!weeks.has(wk)) weeks.set(wk,[]); weeks.get(wk).push(m); }
+  for(const [wk,grp] of weeks){
+    const model=fitFor(code, start+wk*7*DAY, opts); if(!model) continue;
+    for(const m of grp) cb(model, m, wk);
+  }
+}
+function tune(code){
+  const base=optsFor(code);
+  const HL = code==='intl' ? [240,365,730] : [120,240,480], PR=[2,4,8];
+  const EW=[0,0.25,0.5,0.75];   // Elo weight; anything above 0 must beat the plain model by a margin
+  let best=null;
+  const run=(hl,pr,sw)=>{
+    const o={...base, halfLife:hl, prior:pr, shotW:sw, iters:25, light:true}; let n=0; const ll=EW.map(()=>0), obs=EW.map(()=>[]);
+    walk(code, o, (model,m)=>{ n++; EW.forEach((e,i)=>{ const [lh,la]=lam(model,m,e,0); ll[i]+=m.hg*Math.log(lh)-lh+m.ag*Math.log(la)-la; obs[i].push([lh,la,m.hg,m.ag]); }); });
+    if(n) EW.forEach((e,i)=>{ const v=ll[i]/n-(e>0?0.0005:0)-(sw>0?0.0005:0); if(!best || v>best.ll) best={ll:v, hl, pr, e, sw, obs:obs[i], n}; });
+  };
+  for(const hl of HL) for(const pr of PR) run(hl,pr,0);
+  if(!best) return {...base, tuned:false};
+  // shot-based ratings: kept only if they predict past scores better than goals alone
+  if(S.comps[code].some(m=>m.soh!=null)){ const {hl,pr}=best; for(const sw of [0.3,0.6]) run(hl,pr,sw); }
+  base.eloW=best.e; base.shotW=best.sw;
+  let rho=base.rho, bl=-Infinity;
+  for(const r of [-0.16,-0.12,-0.08,-0.04,0,0.04]){
+    let s=0; for(const [lh,la,hg,ag] of best.obs) s+=Math.log(Math.max(1e-6, dcTau(hg,ag,lh,la,r)));
+    if(s>bl){ bl=s; rho=r; }
+  }
+  return {...base, halfLife:best.hl, prior:best.pr, rho, tuned:true, n:best.n};
+}
+// calibration: per market, map predicted probability -> observed frequency (binned, shrunk, monotone)
+function buildCal(recs){
+  const KS=25, by=new Map();
+  for(const r of recs){
+    let b=by.get(r.key); if(!b){ b=Array.from({length:20},()=>({n:0,sp:0,h:0})); by.set(r.key,b); }
+    const c=b[Math.min(19,Math.floor(r.p*20))]; c.n++; c.sp+=r.p; c.h+=r.hit?1:0;
+  }
+  const cal=new Map();
+  for(const [key,bins] of by){
+    const blocks=[];
+    for(const c of bins){ if(!c.n) continue; const x=c.sp/c.n;
+      blocks.push({y:(c.h+KS*x)/(c.n+KS), w:c.n+KS, xs:[x]});
+      while(blocks.length>1 && blocks[blocks.length-2].y>blocks[blocks.length-1].y){
+        const b2=blocks.pop(), b1=blocks.pop();
+        blocks.push({y:(b1.y*b1.w+b2.y*b2.w)/(b1.w+b2.w), w:b1.w+b2.w, xs:b1.xs.concat(b2.xs)});
+      }
+    }
+    const pts=[]; for(const b of blocks) for(const x of b.xs) pts.push({x,y:b.y});
+    cal.set(key,{pts,bins});
+  }
+  return cal;
+}
+function applyCal(cal, key, p){
+  const c=cal.get(key); if(!c || !c.pts.length) return {p, n:0, rate:null};
+  const pts=c.pts, last=pts[pts.length-1]; let y;
+  if(p<=pts[0].x) y=p+(pts[0].y-pts[0].x);
+  else if(p>=last.x) y=p+(last.y-last.x);
+  else { let i=0; while(pts[i+1].x<p) i++; const a=pts[i], b=pts[i+1], t=(p-a.x)/((b.x-a.x)||1); y=a.y+t*(b.y-a.y); }
+  const b=c.bins[Math.min(19,Math.floor(p*20))];
+  return {p:Math.min(0.995,Math.max(0.005,y)), n:b.n, rate:b.n? b.h/b.n : null};
+}
+async function prepare(){
+  feederCache.clear(); S.opts={}; S.restR=0; S.redR=0; S.corners={};
+  const codes=Object.keys(S.comps);
+  annotateRest();
+  for(const c of codes){
+    const cm=S.comps[c].filter(m=>m.hg!==null && m.ch!=null).map(m=>({t:m.t, home:m.home, away:m.away, hg:m.ch, ag:m.ca, neutral:m.neutral, w0:1}));
+    if(cm.length>=60) S.corners[c]=cm;
+  }
+  for(const c of codes) S.opts[c]=optsFor(c);
+  for(let i=0;i<codes.length;i++){
+    $('status').textContent=`Tuning the model for ${NAMES[codes[i]]||codes[i]} (${i+1}/${codes.length})…`; setProg(0.8+0.1*i/codes.length); await tick();
+    S.opts[codes[i]]=tune(codes[i]);
+  }
+  feederCache.clear();
+  // short-rest adjustment: one value for all club leagues, used only if it clearly improves past predictions
+  $('status').textContent='Testing whether short rest between matches matters…'; setProg(0.91); await tick();
+  const RS=[0,0.03,0.06,0.1], rs=RS.map(()=>0); let rn=0, nShort=0;
+  for(const c of codes){ if(c==='intl') continue;
+    walk(c, S.opts[c], (model,m)=>{ rn++; const sh=m.restH!=null&&m.restH<4, sa=m.restA!=null&&m.restA<4; if(sh!==sa) nShort++;
+      RS.forEach((r,i)=>{ const [lh,la]=lam(model,m,undefined,r); rs[i]+=m.hg*Math.log(lh)-lh+m.ag*Math.log(la)-la; }); });
+    await tick();
+  }
+  let bi=0; RS.forEach((r,i)=>{ if(rs[i]>rs[bi]) bi=i; });
+  const gain = rn ? (rs[bi]-rs[0])/rn : 0;
+  S.restR = gain>0.0003 ? RS[bi] : 0;
+  S.restInfo = {n:rn, nShort, tried:RS[bi], gain, used:S.restR};
+  // red cards: down-weight matches played long with ten men, only if that clearly improves past predictions
+  $('status').textContent='Testing whether red-card matches should count less…'; await tick();
+  const RR=[0,0.5,1], rl=[]; let nRed=0;
+  for(const c of codes) if(c!=='intl') nRed+=S.comps[c].filter(m=>m.hg!==null && m.rc!=null).length;
+  for(const rr of RR){
+    feederCache.clear(); let s=0,n=0;
+    for(const c of codes){ if(c==='intl') continue;
+      walk(c, {...S.opts[c], redR:rr, light:true}, (model,m)=>{ const [lh,la]=lam(model,m); s+=m.hg*Math.log(lh)-lh+m.ag*Math.log(la)-la; n++; }); }
+    rl.push(n ? s/n : 0); await tick();
+  }
+  let ri2=0; RR.forEach((r,i)=>{ if(rl[i]>rl[ri2]) ri2=i; });
+  S.redR = rl[ri2]-rl[0]>0.0003 ? RR[ri2] : 0;
+  S.redInfo = {nRed, gain:rl[ri2]-rl[0], used:S.redR};
+  feederCache.clear();
+  // market weight: which mix of model and bookmaker predicted past results best (1X2 plus the over/under line)
+  $('status').textContent='Comparing the model with past bookmaker odds…'; setProg(0.92); await tick();
+  const W=[0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1], ws=W.map(()=>0); let wn=0;
+  for(const c of codes){
+    walk(c, S.opts[c], (model,m)=>{
+      const mp=marketProbs(m.odds); if(mp.h==null) return; wn++;
+      const [lh,la]=lam(model,m), p=gridProbs(scoreGrid(lh,la,model.rho), mp.line);
+      const o=m.hg>m.ag?'h':m.hg===m.ag?'d':'a', over=mp.line!=null ? m.hg+m.ag>mp.line : null;
+      W.forEach((w,i)=>{ ws[i]+=Math.log(Math.max(1e-6,(1-w)*p[o]+w*mp[o]));
+        if(over!==null){ const q=(1-w)*p.o+w*mp.o; ws[i]+=Math.log(Math.max(1e-6, over?q:1-q)); } });
+    });
+    await tick();
+  }
+  S.mwInfo=null;
+  if(wn>=300){
+    let wi=0; W.forEach((w,i)=>{ if(ws[i]>ws[wi]) wi=i; });
+    S.mwInfo={n:wn, best:W[wi], model:ws[0]/wn, market:ws[W.length-1]/wn, blend:ws[wi]/wn};
+    if(!S.mwManual){ $('mw').value=Math.round(W[wi]*100); $('mwv').textContent=$('mw').value+'%'; }
+  }
+  $('status').textContent='Checking the model against past results (calibration)…'; setProg(0.93); await tick();
+  const recs=[];
+  for(const c of codes){
+    walk(c, S.opts[c], (model,m,wk)=>{
+      const p=predict(model,m,0,null), draw=m.hg===m.ag;
+      for(const k of p.markets){ if(k.dnb && draw) continue; const h=k.hit(m); if(h===null) continue; recs.push({key:k.key, p:k.p, hit:h, fold:wk&1}); }
+    });
+    await tick();
+  }
+  S.calN=recs.length;
+  S.cal=buildCal(recs);
+  S.calEx=[buildCal(recs.filter(r=>r.fold!==0)), buildCal(recs.filter(r=>r.fold!==1))];
+}
+
+const mw = () => +$('mw').value/100;
+const thr = () => +$('thr').value/100;
+
+function buildModels(){
+  const now=Date.now(); S.models={}; S.stale={}; S.upcoming=[];
+  for(const [code,ms] of Object.entries(S.comps)){
+    const model=fitFor(code, now, S.opts[code]||optsFor(code)); if(!model) continue;
+    S.models[code]=model;
+    let last=0; for(const m of ms) if(m.hg!==null) last=Math.max(last,m.t);
+    const missing=ms.filter(m=>m.hg===null && m.t>last && m.t<now-2*DAY).length;
+    if(missing>=3) S.stale[code]={last:new Date(last), missing};
+    for(const m of ms){ if(m.hg!==null || m.state==='in' || m.t<now-3*3600*1000) continue; S.upcoming.push(m); }
+  }
+  S.upcoming.sort((a,b)=>a.t-b.t);
+  repredict();
+  const n=Object.keys(S.models).length, withOdds=S.upcoming.filter(m=>m.odds).length;
+  const bad=S.sources.filter(s=>!s.ok);
+  $('status').innerHTML=`Up to date: ${n} competitions, ${S.upcoming.length} upcoming matches (${withOdds} with bookmaker odds). Checked against ${(S.calN||0).toLocaleString()} past predictions. Updated ${new Date().toLocaleString(undefined,{weekday:'short',hour:'2-digit',minute:'2-digit'})}.`+
+    (bad.length?` <span class="err">${bad.length} data source problem(s). See "How it works".</span>`:'')+
+    (Object.keys(S.stale).length?`<br><span class="err">Out of date and hidden: ${Object.entries(S.stale).map(([c,s])=>`${esc(NAMES[c]||c)} (results stop at ${s.last.toLocaleDateString()})`).join('; ')}.</span>`:'');
+  $('srclist').innerHTML='<ul>'+S.sources.map(s=>`<li>${s.ok?'✓':'✗'} ${esc(s.src)}: ${s.ok? s.n+' matches'+(s.odds!=null?`, ${s.odds} with odds`:'') : '<span class="err">'+esc(s.err)+'</span>'}</li>`).join('')+'</ul>';
+  const ri=S.restInfo, mi=S.mwInfo;
+  $('tunelist').innerHTML=(mi?`<p class="status">Market weight: across ${mi.n.toLocaleString()} past matches with closing odds, a ${Math.round(mi.best*100)}% bookmaker share predicted results best, so the slider starts there. Log-likelihood per match: model alone ${mi.model.toFixed(4)}, bookmaker alone ${mi.market.toFixed(4)}, best mix ${mi.blend.toFixed(4)} (closer to zero is better).</p>`:'<p class="status">Market weight: not enough past matches with odds to set it from evidence, so it stays at 50%.</p>')+(ri?`<p class="status">Short-rest adjustment: ${ri.used>0?`used. A team with under 4 days' rest facing a rested opponent has its expected goals cut by ${Math.round(ri.used*100)}%.`:`not used. Across ${ri.n.toLocaleString()} past matches (${ri.nShort.toLocaleString()} with one side on short rest) it didn't improve predictions enough to keep.`} Cup and European matches aren't loaded, so rest is measured between league matches only.</p>`:'')+
+    (S.redInfo?`<p class="status">Red cards: ${S.redInfo.used>0?`matches with a red card count less (up to ${Math.round(S.redInfo.used*100)}% less for an early one).`:`no change. Giving less weight to the ${S.redInfo.nRed.toLocaleString()} past matches with a red card didn't improve predictions enough to keep.`}</p>`:'')+
+    '<div class="tablewrap"><table><thead><tr><th>Competition</th><th class="num">Form half-life (days)</th><th class="num">Pull to starting rating (matches)</th><th class="num">Low-score correction</th><th class="num">Elo weight</th><th class="num">Shots weight</th><th class="num">Corner model</th><th>Division-move ratings from</th></tr></thead><tbody>'+
+    Object.keys(S.models).sort().map(c=>{ const o=S.opts[c]||{}, adj=ADJ[c]||{}; const src=[adj.lower,adj.upper].filter(x=>x&&S.comps[x]).map(x=>NAMES[x]||x).join(', ');
+      return `<tr><td>${esc(NAMES[c]||c)}</td><td class="num">${o.halfLife}</td><td class="num">${o.prior}</td><td class="num">${o.rho}</td><td class="num">${Math.round((o.eloW||0)*100)}%</td><td class="num">${Math.round((o.shotW||0)*100)}%</td><td class="num">${S.corners&&S.corners[c]?'yes':'–'}</td><td>${src?esc(src):'–'}</td></tr>`; }).join('')+'</tbody></table></div>';
+}
+// adds two independent views to each market: pm = model alone, pb = bookmaker alone (null where the odds don't cover it)
+function addViews(model, m, pred, cal){
+  const hasH=!!(m.odds && m.odds.h), hasL=!!(m.odds && m.odds.line);
+  const p0=predict(model, m, 0, cal), p1=hasH ? predict(model, m, 1, null) : null;
+  pred.markets.forEach((k,i)=>{ k.pm=p0.markets[i].p; k.pb = p1 && !k.corner && (k.cat==='result' || hasL) ? p1.markets[i].p : null; });
+}
+function repredict(){ const w=mw(); for(const m of S.upcoming){ const model=S.models[m.comp]; m.pred=predict(model, m, w, S.cal); addViews(model, m, m.pred, S.cal); } }
+
+// ======================= rendering =======================
+function fillLeagueSelect(){
+  const sel=$('league'), cur=sel.value;
+  sel.innerHTML='<option value="">All competitions</option>'+Object.keys(S.models).sort((a,b)=>(NAMES[a]||a).localeCompare(NAMES[b]||b)).map(c=>`<option value="${c}">${esc(NAMES[c]||c)}</option>`).join('');
+  sel.value=cur;
+}
+function filtered(){
+  const days=+$('days').value||7, lg=$('league').value, now=Date.now();
+  return S.upcoming.filter(m=>m.t<=now+days*DAY && (!lg||m.comp===lg) && !S.stale[m.comp]);
+}
+function fmtDate(t){ const d=new Date(t); return d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})+' '+d.toTimeString().slice(0,5); }
+const agrees = (k,t) => k.pb!=null && k.pm>=t && k.pb>=t;
+function okPick(k, t, mk, hideThin, needAgree){ return k.p>=t && (!mk || k.cat===mk) && !(hideThin && k.ev && k.ev.n<THIN) && !(needAgree && !agrees(k,t)); }
+function pickRows(){
+  const t=thr(), mk=$('mkt').value, vo=$('valueOnly').checked, ht=$('thin').checked, ag=$('agree').checked, rows=[];
+  for(const m of filtered()) for(const k of m.pred.markets){
+    if(!okPick(k,t,mk,ht,ag)) continue;
+    const edge = k.odds ? k.p*k.odds-1 : null;
+    if(vo && !(edge>0)) continue;
+    rows.push({m,k,edge});
+  }
+  return rows.sort((a,b)=>b.k.p-a.k.p);
+}
+const tier = p => p>=0.9 ? ['Very likely','t3'] : p>=0.8 ? ['Likely','t2'] : p>=0.7 ? ['Fairly likely','t1'] : ['Leaning','t0'];
+function pickCard({m,k,edge}){
+  const [word,cls]=tier(k.p), f=[];
+  f.push(`<span>Model <b>${Math.round(k.pm*100)}%</b></span>`);
+  if(k.pb!=null) f.push(`<span>Bookmaker <b>${Math.round(k.pb*100)}%</b></span>`);
+  if(k.ev && k.ev.n) f.push(`<span>Past picks like this: <b>${Math.round(k.ev.rate*100)}%</b> of ${k.ev.n.toLocaleString()} came true</span>`);
+  if(k.odds) f.push(`<span class="${edge>0?'good':''}">Bookmaker odds <b>${k.odds.toFixed(2)}</b> (edge ${edge>0?'+':''}${(edge*100).toFixed(1)}%)</span>`);
+  else f.push(`<span>Fair odds <b>${(1/k.p).toFixed(2)}</b></span>`);
+  f.push(k.corner && m.pred.cl ? `<span>Expected corners <b>${m.pred.cl[0].toFixed(1)} – ${m.pred.cl[1].toFixed(1)}</b></span>` : `<span>Expected goals <b>${m.pred.lh.toFixed(1)} – ${m.pred.la.toFixed(1)}</b></span>`);
+  return `<div class="pick"><div class="conf ${cls}"><b>${Math.round(k.p*100)}%</b><span>${word}</span></div>
+    <div><div class="ptitle">${esc(k.label)}</div><div class="pmatch">${esc(m.home)} v ${esc(m.away)}</div>
+    <div class="pmeta">${esc(NAMES[m.comp]||m.comp)} · ${fmtDate(m.t)}</div><div class="facts">${f.join('')}</div></div></div>`;
+}
+function renderPicks(){
+  const el=$('t-picks'); if(!S.loaded){ el.innerHTML='<p class="empty">Loading the latest matches and results…</p>'; return; }
+  const t=thr(), rows=pickRows(), days=+$('days').value||7;
+  if($('sort').value==='time') rows.sort((a,b)=>a.m.t-b.m.t || b.k.p-a.k.p);
+  const nm=new Set(rows.map(r=>r.m.comp+'|'+r.m.id)).size, shown=rows.slice(0,S.showN||60);
+  el.innerHTML=`<div class="summary"><div><b>${rows.length.toLocaleString()}</b> predictions rated ${Math.round(t*100)}% or higher, from <b>${nm}</b> matches in the next ${days} days.</div>
+    <details class="help"><summary>How to read a pick</summary><ul>
+      <li>The big number is the chance the prediction comes true. At 80%, about 1 in 5 still loses.</li>
+      <li><b>Model</b> is the app's own estimate. <b>Bookmaker</b> is what the betting odds imply. When both are high, the pick is safer.</li>
+      <li><b>Past picks like this</b> shows how often similar predictions were right over the past year.</li>
+      <li>The surest picks, such as "over 0.5 goals", pay very little. A high percentage means likely, not profitable.</li>
+    </ul></details></div>`+
+    (rows.length ? `<div class="picklist">${shown.map(pickCard).join('')}</div>`+(rows.length>shown.length?`<button class="morebtn" id="morebtn">Show ${Math.min(60,rows.length-shown.length)} more</button>`:'')
+                 : '<p class="empty">Nothing reaches this confidence level. Try a lower minimum, more days, or more leagues.</p>');
+  const mb=$('morebtn'); if(mb) mb.onclick=()=>{ S.showN=(S.showN||60)+60; renderPicks(); };
+}
+function renderMatches(){
+  const el=$('t-matches'); if(!S.loaded){ el.innerHTML=''; return; }
+  const t=thr(), mk=$('mkt').value, ht=$('thin').checked, ag=$('agree').checked, list=filtered();
+  if(!list.length){ el.innerHTML='<p class="empty">No matches in this period.</p>'; return; }
+  const w=x=>(x*100).toFixed(0);
+  el.innerHTML='<div class="cards">'+list.slice(0,300).map(m=>{
+    const p=m.pred, picks=p.markets.filter(k=>okPick(k,t,mk,ht,ag)).sort((a,b)=>b.p-a.p), mp=p.market;
+    return `<div class="card"><div class="meta">${esc(NAMES[m.comp]||m.comp)} · ${fmtDate(m.t)}${m.neutral?' · neutral venue':''}</div>
+      <div class="teams">${esc(m.home)} v ${esc(m.away)}</div>
+      <div class="xg"><span>Expected goals <b>${p.lh.toFixed(1)} – ${p.la.toFixed(1)}</b></span><span>Most likely score <b>${p.top[0].s}</b></span></div>
+      <div class="bar"><div style="width:${w(p.ph)}%;background:var(--home)">${w(p.ph)}%</div><div style="width:${w(p.pd)}%;background:var(--draw)">${w(p.pd)}%</div><div style="width:${w(p.pa)}%;background:var(--away)">${w(p.pa)}%</div></div>
+      <div class="legend"><span>${esc(m.home)} win</span><span>Draw</span><span>${esc(m.away)} win</span></div>
+      <div class="mkline">${mp.h!=null?`Bookmaker: ${[mp.h,mp.d,mp.a].map(x=>w(x)+'%').join(' / ')} · `:'No bookmaker odds yet · '}Model alone: ${p.model1x2.map(x=>w(x)+'%').join(' / ')}${p.cl?` · Expected corners ${p.cl[0].toFixed(1)} – ${p.cl[1].toFixed(1)}`:''}</div>
+      <div class="chips">${picks.length?picks.slice(0,8).map(k=>`<span class="${tier(k.p)[1]}">${esc(k.label)} ${Math.round(k.p*100)}%</span>`).join('')+(picks.length>8?`<span class="t0">+${picks.length-8} more</span>`:''):`<span class="none" style="border:none">Nothing at ${Math.round(t*100)}% or higher</span>`}</div></div>`;
+  }).join('')+'</div>'+(list.length>300?`<p class="status">Showing the first 300 of ${list.length} matches. Narrow the period or competition to see the rest.</p>`:'');
+}
+function renderAll(){ S.showN=60; renderPicks(); renderMatches(); }
+
+// ======================= pick log (forward track record) =======================
+const MK = Object.fromEntries(markets('Home','Away').map(k=>[k.key,k]));
+async function updateLog(){
+  const log=(await cget('picklog'))||{};
+  // settle finished matches
+  const done=new Map(); for(const [c,ms] of Object.entries(S.comps)) for(const m of ms) if(m.hg!==null) done.set(c+'|'+m.id, m);
+  for(const e of Object.values(log)){
+    if(e.res!=null) continue; const m=done.get(e.comp+'|'+e.id), k=MK[e.key]; if(!m || !k) continue;
+    const h=k.hit(m);
+    e.res = (h===null || (k.dnb && m.hg===m.ag)) ? 'void' : (h ? 1 : 0);
+    e.score = k.corner ? (m.ch!=null ? (m.ch+m.ca)+' corners' : 'no corner data') : m.hg+'–'+m.ag;
+  }
+  // log new picks shown at the current settings (first sighting is kept, never revised)
+  const t=thr(), ht=$('thin').checked, ag=$('agree').checked, now=Date.now(), days=+$('days').value||7;
+  for(const m of S.upcoming){
+    if(S.stale[m.comp] || m.t>now+days*DAY) continue;
+    for(const k of m.pred.markets){
+      if(!okPick(k,t,'',ht,ag)) continue; const id=m.comp+'|'+m.id+'|'+k.key; if(log[id]) continue;
+      log[id]={id:m.id, comp:m.comp, t:m.t, home:m.home, away:m.away, key:k.key, label:k.label, p:k.p, odds:k.odds||null, at:now, res:null};
+    }
+  }
+  await cput('picklog', log); S.log=log; renderLog();
+}
+function renderLog(){
+  const el=$('logout'), all=Object.values(S.log||{}).sort((a,b)=>b.t-a.t);
+  const settled=all.filter(e=>e.res===1||e.res===0), pending=all.filter(e=>e.res==null);
+  const n=settled.length, hits=settled.filter(e=>e.res===1).length, avg=settled.reduce((s,e)=>s+Number(e.p),0)/(n||1);
+  const wo=settled.filter(e=>e.odds), roi=wo.reduce((s,e)=>s+(e.res===1?Number(e.odds)-1:-1),0)/(wo.length||1);
+  const cls=(h,p)=>h>=p-0.02?'good':h<p-0.05?'badc':'';
+  const bands=[[0.55,0.7],[0.7,0.8],[0.8,0.9],[0.9,1.01]].map(([lo,hi])=>{ const b=settled.filter(e=>e.p>=lo&&e.p<hi); return {lo,hi,n:b.length,avg:b.reduce((s,e)=>s+Number(e.p),0)/(b.length||1),hit:b.filter(e=>e.res===1).length/(b.length||1)}; }).filter(b=>b.n);
+  el.innerHTML=`
+    <div class="kpis">
+      <div class="kpi"><div class="v">${all.length.toLocaleString()}</div><div class="l">Picks logged (${pending.length.toLocaleString()} awaiting results)</div></div>
+      <div class="kpi"><div class="v ${n?cls(hits/n,avg):''}">${n?pct(hits/n):'–'}</div><div class="l">Hit rate on ${n.toLocaleString()} settled picks${n?` (predicted ${pct(avg)})`:''}</div></div>
+      <div class="kpi"><div class="v ${wo.length?(roi>0?'good':'badc'):''}">${wo.length?(roi>0?'+':'')+(roi*100).toFixed(1)+'%':'–'}</div><div class="l">Return per 1-unit stake on ${wo.length.toLocaleString()} settled picks with bookmaker odds</div></div>
+    </div>
+    ${n<100?'<p class="note">Fewer than 100 picks have settled, so these figures are still mostly luck. They become meaningful after a few hundred.</p>':''}
+    ${bands.length?`<div class="tablewrap"><table><thead><tr><th>Predicted band</th><th class="num">Settled picks</th><th class="num">Avg predicted</th><th class="num">Actual</th></tr></thead><tbody>${bands.map(b=>`<tr><td>${Math.round(b.lo*100)}–${Math.min(100,Math.round(b.hi*100))}%</td><td class="num">${b.n}</td><td class="num">${pct(b.avg)}</td><td class="num ${cls(b.hit,b.avg)}">${pct(b.hit)}</td></tr>`).join('')}</tbody></table></div>`:''}
+    ${all.length?`<h3>Latest picks</h3><div class="tablewrap"><table><thead><tr><th>Kick-off</th><th>Competition</th><th>Match</th><th>Prediction</th><th class="num">Prob.</th><th class="num">Book odds</th><th>Result</th></tr></thead><tbody>`+
+      all.slice(0,300).map(e=>`<tr><td>${fmtDate(Number(e.t))}</td><td>${esc(NAMES[e.comp]||e.comp)}</td><td>${esc(e.home)} v ${esc(e.away)}</td><td>${esc(e.label)}</td><td class="num">${pct(Number(e.p))}</td><td class="num">${e.odds?Number(e.odds).toFixed(2):'–'}</td><td>${e.res===1?`<span class="good">Won</span> (${esc(e.score||'')})`:e.res===0?`<span class="badc">Lost</span> (${esc(e.score||'')})`:e.res==='void'?'Void (draw)':'Pending'}</td></tr>`).join('')+
+      `</tbody></table></div>${all.length>300?`<p class="status">Showing the latest 300 of ${all.length.toLocaleString()}. Export to see all.</p>`:''}`:'<p class="none">No picks logged yet.</p>'}`;
+}
+async function exportData(){
+  const data={version:1, exported:new Date().toISOString(), picklog:S.log||{}, odds:await savedOdds()};
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));
+  a.download='football-predictor-backup-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove();
+}
+async function importData(file){
+  const j=JSON.parse(await file.text()), log=(await cget('picklog'))||{}; let added=0;
+  for(const [k,v] of Object.entries(j.picklog||{})) if(!log[k] && v && typeof v==='object'){ log[k]=v; added++; }
+  await cput('picklog', log);
+  let no=0; for(const [k,v] of Object.entries(j.odds||{})) if(k.startsWith('odds|') && v && typeof v==='object'){ await cput(k,v); no++; }
+  S.log=log; renderLog();
+  $('logmsg').textContent=`Imported ${added} new picks and ${no} saved odds. Press "Refresh data" to settle them.`;
+}
+
+// ======================= backtest =======================
+async function runBacktest(){
+  const btn=$('runbt'), out=$('btout'); btn.disabled=true;
+  const t=thr(), w=mw(), mkf=$('mkt').value, lgf=$('league').value, ht=$('thin').checked, ag=$('agree').checked;
+  const res=[], r3=[];
+  const codes=Object.keys(S.comps).filter(c=>(!lgf||c===lgf) && !S.stale[c]);
+  for(let ci=0; ci<codes.length; ci++){
+    const code=codes[ci];
+    out.innerHTML=`<p class="status">Replaying ${esc(NAMES[code]||code)} (${ci+1}/${codes.length})…</p>`;
+    await tick();
+    walk(code, S.opts[code], (model,m,wk)=>{
+      const p=predict(model,m,w,S.calEx[wk&1]), o=m.hg>m.ag?0:m.hg===m.ag?1:2, mp=p.market;
+      if(m.odds && m.odds.h) addViews(model, m, p, S.calEx[wk&1]);
+      r3.push({o, model:p.model1x2, blend:[p.ph,p.pd,p.pa], market: mp.h!=null?[mp.h,mp.d,mp.a]:null});
+      for(const k of p.markets){
+        if(k.dnb && m.hg===m.ag) continue;
+        if(mkf && k.cat!==mkf) continue;
+        const hit=k.hit(m); if(hit===null) continue;
+        res.push({comp:code, label:k.gl, raw:k.raw, p:k.p, thin:!!(k.ev && k.ev.n<THIN), hit, odds:k.odds, hasB:k.pb!=null, ag:agrees(k,t)});
+      }
+    });
+  }
+  const sum=(arr,f)=>arr.reduce((s,r)=>s+f(r),0);
+  const selRaw=res.filter(r=>r.raw>=t);
+  const sel=res.filter(r=>r.p>=t && !(ht && r.thin) && !(ag && !r.ag));
+  const stat=(arr,key)=>({n:arr.length, avg:sum(arr,r=>r[key])/(arr.length||1), hit:sum(arr,r=>r.hit?1:0)/(arr.length||1)});
+  const sR=stat(selRaw,'raw'), sC=stat(sel,'p');
+  const cov=res.filter(r=>r.hasB && r.p>=t && !(ht && r.thin)), sAll=stat(cov,'p'), sAg=stat(cov.filter(r=>r.ag),'p'), sDis=stat(cov.filter(r=>!r.ag),'p');
+  const brierOf=(key)=>sum(res,r=>(r[key]-(r.hit?1:0))**2)/(res.length||1);
+  const withOdds=sel.filter(r=>r.odds), roi=sum(withOdds,r=>r.hit?r.odds-1:-1)/(withOdds.length||1);
+  const val=res.filter(r=>r.odds && r.p*r.odds>1.03), roiV=sum(val,r=>r.hit?r.odds-1:-1)/(val.length||1);
+  const bri=(arr,key)=>{ let s=0,n=0; for(const r of arr){ const v=r[key]; if(!v) continue; for(let i=0;i<3;i++) s+=(v[i]-(i===r.o?1:0))**2; n++; } return n? s/n : null; };
+  const acc=(arr,key)=>{ let a=0,n=0; for(const r of arr){ const v=r[key]; if(!v) continue; if(v.indexOf(Math.max(...v))===r.o) a++; n++; } return n? a/n : null; };
+  const wo=r3.filter(r=>r.market);
+  const bins=[]; for(let lo=0.5; lo<0.999; lo+=0.05){ const hi=lo+0.05; const b=res.filter(r=>r.p>=lo&&r.p<hi); if(b.length) bins.push({lo,hi,n:b.length,avg:sum(b,r=>r.p)/b.length,hit:sum(b,r=>r.hit?1:0)/b.length}); }
+  const group=key=>{ const m=new Map(); for(const r of sel){ const k=r[key]; if(!m.has(k)) m.set(k,{n:0,h:0,p:0}); const o=m.get(k); o.n++; o.h+=r.hit; o.p+=r.p; } return m; };
+  const cls=(h,p)=>h>=p-0.02?'good':h<p-0.05?'badc':'';
+  const tbl=(map,name)=>`<div class="tablewrap"><table><thead><tr><th>${name}</th><th class="num">Picks</th><th class="num">Avg predicted</th><th class="num">Actual hit rate</th></tr></thead><tbody>`+
+    [...map.entries()].sort((a,b)=>b[1].n-a[1].n).map(([k,o])=>`<tr><td>${esc(NAMES[k]||k)}</td><td class="num">${o.n}</td><td class="num">${pct(o.p/o.n)}</td><td class="num ${cls(o.h/o.n,o.p/o.n)}">${pct(o.h/o.n)}</td></tr>`).join('')+'</tbody></table></div>';
+  const f4=x=>x==null?'–':x.toFixed(4);
+  out.innerHTML=`
+    <div class="kpis">
+      <div class="kpi"><div class="v">${sC.n.toLocaleString()}</div><div class="l">Historical picks at or above ${Math.round(t*100)}%</div></div>
+      <div class="kpi"><div class="v ${cls(sC.hit,sC.avg)}">${pct(sC.hit)}</div><div class="l">Actual hit rate (predicted ${pct(sC.avg)} on average)</div></div>
+      <div class="kpi"><div class="v ${roi>0?'good':'badc'}">${withOdds.length?(roi>0?'+':'')+(roi*100).toFixed(1)+'%':'–'}</div><div class="l">Return per 1-unit stake on the ${withOdds.length} of those picks with bookmaker odds</div></div>
+      <div class="kpi"><div class="v ${roiV>0?'good':'badc'}">${val.length?(roiV>0?'+':'')+(roiV*100).toFixed(1)+'%':'–'}</div><div class="l">Return on all ${val.length} "value" picks (edge over 3%, any probability)</div></div>
+    </div>
+    <h3>Did the calibration correction help?</h3>
+    <div class="tablewrap"><table><thead><tr><th></th><th class="num">Picks at or above ${Math.round(t*100)}%</th><th class="num">Avg predicted</th><th class="num">Actual hit rate</th><th class="num">Brier score, all markets</th></tr></thead><tbody>
+      <tr><td>Before (raw model)</td><td class="num">${sR.n.toLocaleString()}</td><td class="num">${pct(sR.avg)}</td><td class="num ${cls(sR.hit,sR.avg)}">${pct(sR.hit)}</td><td class="num">${f4(brierOf('raw'))}</td></tr>
+      <tr><td>After (calibrated${ht?', thin track records hidden':''})</td><td class="num">${sC.n.toLocaleString()}</td><td class="num">${pct(sC.avg)}</td><td class="num ${cls(sC.hit,sC.avg)}">${pct(sC.hit)}</td><td class="num">${f4(brierOf('p'))}</td></tr>
+    </tbody></table></div>
+    <p class="status">A lower Brier score means more accurate probabilities.</p>
+    ${sAll.n?`<h3>Does it help when model and bookmaker agree?</h3>
+    <p class="status">Picks at or above ${Math.round(t*100)}% on markets the bookmaker's odds cover. "Agree" means the model alone and the bookmaker alone each rate the pick at or above ${Math.round(t*100)}%.</p>
+    <div class="tablewrap"><table><thead><tr><th></th><th class="num">Picks</th><th class="num">Avg predicted</th><th class="num">Actual hit rate</th></tr></thead><tbody>
+      <tr><td>All such picks</td><td class="num">${sAll.n.toLocaleString()}</td><td class="num">${pct(sAll.avg)}</td><td class="num ${cls(sAll.hit,sAll.avg)}">${pct(sAll.hit)}</td></tr>
+      <tr><td>Model and bookmaker agree</td><td class="num">${sAg.n.toLocaleString()}</td><td class="num">${sAg.n?pct(sAg.avg):'–'}</td><td class="num ${sAg.n?cls(sAg.hit,sAg.avg):''}">${sAg.n?pct(sAg.hit):'–'}</td></tr>
+      <tr><td>They disagree</td><td class="num">${sDis.n.toLocaleString()}</td><td class="num">${sDis.n?pct(sDis.avg):'–'}</td><td class="num ${sDis.n?cls(sDis.hit,sDis.avg):''}">${sDis.n?pct(sDis.hit):'–'}</td></tr>
+    </tbody></table></div>`:''}
+    <h3>Which source predicts home/draw/away better?</h3>
+    ${wo.length? `<p class="status">Based on ${wo.length} matches with bookmaker odds. A lower Brier score is better.</p>
+    <div class="tablewrap"><table><thead><tr><th>Source</th><th class="num">Brier score</th><th class="num">Favourite won</th></tr></thead><tbody>
+      <tr><td>Model only</td><td class="num">${f4(bri(wo,'model'))}</td><td class="num">${acc(wo,'model')!=null?pct(acc(wo,'model')):'–'}</td></tr>
+      <tr><td>Bookmaker only</td><td class="num">${f4(bri(wo,'market'))}</td><td class="num">${acc(wo,'market')!=null?pct(acc(wo,'market')):'–'}</td></tr>
+      <tr><td>Blend (current market weight ${Math.round(w*100)}%)</td><td class="num">${f4(bri(wo,'blend'))}</td><td class="num">${acc(wo,'blend')!=null?pct(acc(wo,'blend')):'–'}</td></tr>
+    </tbody></table></div>` :
+      `<p class="note">No finished matches with bookmaker odds are loaded, so this comparison and the returns above are empty.</p>`}
+    <h3>Calibration: does X% happen X% of the time?</h3>
+    <div class="tablewrap"><table><thead><tr><th>Predicted band</th><th class="num">Selections</th><th class="num">Avg predicted</th><th class="num">Actual</th></tr></thead><tbody>
+    ${bins.map(b=>`<tr><td>${Math.round(b.lo*100)}–${Math.round(b.hi*100)}%</td><td class="num">${b.n}</td><td class="num">${pct(b.avg)}</td><td class="num ${cls(b.hit,b.avg)}">${pct(b.hit)}</td></tr>`).join('')}
+    </tbody></table></div>
+    <h3>Picks at or above ${Math.round(t*100)}%, by market</h3>${tbl(group('label'),'Market')}
+    <h3>Picks at or above ${Math.round(t*100)}%, by competition</h3>${tbl(group('comp'),'Competition')}
+    <p class="status">Green means the actual hit rate is at or above the predicted rate. Red means it's more than 5 points below. Returns use the bookmaker's closing prices, which include their margin.</p>`;
+  btn.disabled=false;
+}
+
+// ======================= wiring =======================
+function buildLeaguePicker(){
+  const saved=lsGet('fpl-leagues', null);
+  $('lgrid').innerHTML=LEAGUES.map(([s,n,def])=>`<label><input type="checkbox" value="${s}" ${(saved?saved.includes(s):def)?'checked':''}> ${esc(n)}</label>`).join('');
+  $('hist').value=lsGet('fpl-hist',365);
+  const upd=()=>$('lgcount').textContent=selectedLeagues().length; upd();
+  $('lgrid').addEventListener('change',upd);
+  $('lgall').onclick=e=>{ e.preventDefault(); document.querySelectorAll('#lgrid input').forEach(i=>i.checked=true); upd(); };
+  $('lgnone').onclick=e=>{ e.preventDefault(); document.querySelectorAll('#lgrid input').forEach(i=>i.checked=false); upd(); };
+  $('clearcache').onclick=async e=>{ e.preventDefault(); await cclear(); $('status').textContent='Downloaded match data cleared. Your pick record and saved odds were kept. Press "Refresh data" to download again.'; };
+}
+$('thr').addEventListener('input',()=>{ $('thrv').textContent=$('thr').value+'%'; renderAll(); });
+$('mw').addEventListener('input',()=>{ $('mwv').textContent=$('mw').value+'%'; });
+$('mw').addEventListener('change',()=>{ S.mwManual=true; if(S.loaded){ repredict(); renderAll(); } });
+['days','league','mkt','sort','valueOnly','thin','agree'].forEach(id=>$(id).addEventListener('change',renderAll));
+$('reload').addEventListener('click',()=>loadAll().catch(showErr));
+$('runbt').addEventListener('click',()=>runBacktest().catch(e=>{ $('runbt').disabled=false; showErr(e); }));
+$('tabs').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+  for(const x of $('tabs').children) x.classList.toggle('on',x===b);
+  for(const t of ['picks','matches','backtest','log','about']) $('t-'+t).classList.toggle('hidden',t!==b.dataset.t); });
+$('exportbtn').addEventListener('click',()=>exportData().catch(showErr));
+$('importbtn').addEventListener('click',()=>$('importfile').click());
+$('importfile').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) importData(f).catch(err=>{ $('logmsg').innerHTML='<span class="err">That file could not be imported.</span>'; }); e.target.value=''; });
+function showErr(e){ console.error(e); $('reload').disabled=false; $('status').innerHTML='<span class="err">Error: '+esc(e.message||e)+'</span>'; }
+buildLeaguePicker();
+loadAll().catch(showErr);
+</script>
+</body>
+</html>
